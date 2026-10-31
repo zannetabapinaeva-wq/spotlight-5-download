@@ -1,0 +1,37 @@
+name: Publish Spotlight 5 web app
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['web/**', 'checks/**', '.github/workflows/web.yml']
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: spotlight-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Prepare the responsive browser version
+        run: python3 web/build_site.py
+      - name: Verify lessons, dictionary, exercises and saved progress
+        run: node checks/verify.cjs
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+      - name: Publish the public web app
+        id: deployment
+        uses: actions/deploy-pages@v4
